@@ -106,13 +106,21 @@ async def add_text_to_chat_mode_generator(chat_mode):
     if in_function_call:
         yield {'choices': [{'text': ')```'}]}
 
-def add_text_to_chat_mode(chat_mode):
+import types
+import asyncio
+
+async def add_text_to_chat_mode(chat_mode):
     if isinstance(chat_mode, (types.AsyncGeneratorType, types.GeneratorType)):
         return add_text_to_chat_mode_generator(chat_mode)
-    else:
-        for c in chat_mode.choices:
+    elif isinstance(chat_mode, asyncio.StreamReader):
+        async for c in chat_mode:
             c.text = c.message.content
-        return chat_mode
+        # for c in chat_mode.choices:
+            # c.text = c.message.content
+        # return chat_mode
+    else:
+        return add_text_to_chat_mode_generator(chat_mode)
+        
 
 class OpenAI(LLM):
     llm_name: str = "openai"
@@ -364,7 +372,7 @@ class OpenAI(LLM):
             del kwargs['logprobs']
             # print(kwargs)
             out = await client.chat.completions.create(**kwargs)
-            out = add_text_to_chat_mode(out)
+            out = await add_text_to_chat_mode(out)
         else:
             out = await client.completions.create(**kwargs)
         
