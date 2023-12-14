@@ -374,6 +374,7 @@ class OpenAI(LLM):
             out = await client.chat.completions.create(**kwargs)
             out = await add_text_to_chat_mode(out)
         else:
+            del kwargs['echo']  # echo is not used in other routers like openrouter
             out = await client.completions.create(**kwargs)
         
         return out

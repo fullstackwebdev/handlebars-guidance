@@ -62,6 +62,7 @@ async def gen(name=None, stop=None, stop_regex=None, save_stop_text=False, max_t
     prefix = ""
     suffix = ""
 
+
     # get the parser context variables we will need
     parser = _parser_context['parser']
     variable_stack = _parser_context['variable_stack']
@@ -78,6 +79,10 @@ async def gen(name=None, stop=None, stop_regex=None, save_stop_text=False, max_t
         assert name is not None, "You must provide a variable name when using list_append=True"
 
     # if stop is None then we use the text of the node after the generate command
+
+    if stop == "" or stop == "None":
+        stop = None
+
     if stop is None:
 
         next_text = getattr(next_node, "text", next_node) if next_node is not None else ""
@@ -110,7 +115,7 @@ async def gen(name=None, stop=None, stop_regex=None, save_stop_text=False, max_t
         # if stop is None:
         #     stop = next_text
 
-    if stop == "":
+    if stop == "": # keeping this here for legacy reasons
         stop = None
 
     # set the cache seed to 0 if temperature is 0
@@ -132,10 +137,14 @@ async def gen(name=None, stop=None, stop_regex=None, save_stop_text=False, max_t
     if save_prompt:
         variable_stack[save_prompt] = variable_stack["@raw_prefix"]+prefix
 
-    if logprobs is None:
+    # if logprobs is None or if string 'None'
+    if logprobs is None or logprobs == "None":
         logprobs = parser.program.logprobs
 
     assert parser.llm_session is not None, "You must set an LLM for the program to use (use the `llm=` parameter) before you can use the `gen` command."
+
+    if pattern == "None" or pattern == "": # cant' use None as a pattern
+        pattern = None
 
     # call the LLM
     gen_obj = await parser.llm_session(
@@ -164,10 +173,26 @@ async def gen(name=None, stop=None, stop_regex=None, save_stop_text=False, max_t
             await asyncio.sleep(0)  # allow other tasks to run
             #log("parser.should_stop = " + str(parser.should_stop))
             if parser.should_stop:
-                #log("Stopping generation")
+                # log("Stopping generation")
                 break
+
             # log.debug("resp", resp)
-            new_text = resp.choices[0].delta.content or ""
+            
+            new_text = ""
+            # Check if choices exists and has more than 0 items
+            if hasattr(resp, 'choices') and len(resp.choices) > 0:
+                # Check if the first choice has a delta attribute
+                if hasattr(resp.choices[0], 'delta') and resp.choices[0].delta is not None:
+                    new_text = resp.choices[0].delta.content or ""
+                else:
+                    # Fallback to text if delta doesn't exist
+                    new_text = resp.choices[0].text or ""
+            else:
+                # Handle the case where choices doesn't exist or is empty
+                new_text = ""
+
+            
+
             generated_value += new_text
             variable_stack["@raw_prefix"] += new_text
             if logprobs is not None:
