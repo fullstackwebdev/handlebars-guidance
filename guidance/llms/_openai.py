@@ -44,7 +44,7 @@ roles_grammar = pp.ZeroOrMore(role_group) + pp.Optional(partial_role_group) + pp
 def prompt_to_messages(prompt):
     messages = []
 
-    assert prompt.endswith("<|im_start|>assistant\n"), "When calling OpenAI chat models you must generate only directly inside the assistant role! The OpenAI API does not currently support partial assistant prompting."
+    # assert prompt.endswith("<|im_start|>assistant\n"), "When calling OpenAI chat models you must generate only directly inside the assistant role! The OpenAI API does not currently support partial assistant prompting."
 
     parsed_prompt = roles_grammar.parse_string(prompt)
 
@@ -222,11 +222,11 @@ class OpenAI(LLM):
             return SyncSession(OpenAISession(self))
 
     def role_start(self, role_name, **kwargs):
-        assert self.chat_mode, "role_start() can only be used in chat mode"
+        # assert self.chat_mode, "role_start() can only be used in chat mode" # Not anymore!
         return "<|im_start|>"+role_name+"".join([f' {k}="{v}"' for k,v in kwargs.items()])+"\n"
     
     def role_end(self, role=None):
-        assert self.chat_mode, "role_end() can only be used in chat mode"
+        # assert self.chat_mode, "role_end() can only be used in chat mode"
         return "<|im_end|>"
     
     def end_of_text(self):
